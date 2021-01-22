@@ -9,7 +9,9 @@
     * [ ] Using channels!
     * [ ] Use a manager task?
 * [ ] Implement websockets on the tcp side
-    * [ ] Find a create
+    * [ ] Find a crate (tokio websockets or something)
+        * tungstenite.rs
+        * tokio-tungstenite = "0.13.0"
     * [ ] Get it working
 * [ ] Restructure and put into modules where it makes sense
     * [ ] Refactor
