@@ -2,7 +2,7 @@ use std::time::{SystemTime};
 
 #[tokio::main]
 async fn main() {
-    println!("Main start");
+    println!("Main start with {:?}", std::thread::current().id());
     let now: SystemTime = SystemTime::now();
     let mut counter: u64 = 1;
     while now.elapsed().unwrap().as_secs_f32() < 2.5 {
@@ -15,7 +15,7 @@ async fn main() {
 
         std::thread::sleep(std::time::Duration::from_millis(100));
         time = now.elapsed().unwrap().as_secs_f32();
-        println!("Time: {:.1}", time);
+        println!("Time: {:.1}, {:?}", time, std::thread::current().id());
         counter += 1;
     }
 
@@ -29,7 +29,7 @@ async fn listen_unix(time: f32, counter: u64) {
     tokio::spawn(async move {
         std::thread::current();
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-        println!("Unix listen {} startet {:.1}, is done {:?}", counter, time, std::thread::current().id());
+        println!("Unix listen {} startet {:.1}, is done {:?} {:?}", counter, time, std::thread::current().id(), std::process::id());
     });
 }
 
