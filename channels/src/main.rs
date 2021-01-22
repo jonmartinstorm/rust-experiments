@@ -18,7 +18,7 @@ async fn main() {
 
         std::thread::sleep(std::time::Duration::from_millis(100));
         time = now.elapsed().unwrap().as_secs_f32();
-        println!("Time: {:.1}. starting Unx, Tcp and simulation {}", time, counter);
+        println!("Time: {:.1}. starting Unix, Tcp and simulation {}", time, counter);
         counter += 1;
     }
 
