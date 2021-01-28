@@ -27,6 +27,14 @@ from pymodbus.transaction import ModbusRtuFramer, ModbusAsciiFramer
 from twisted.internet.task import LoopingCall
 
 # --------------------------------------------------------------------------- #
+# import the random libraries we need
+# --------------------------------------------------------------------------- #
+import random
+import socket
+import json
+
+
+# --------------------------------------------------------------------------- #
 # configure the service logging
 # --------------------------------------------------------------------------- #
 import logging
@@ -50,10 +58,46 @@ def updating_writer(a):
     context = a[0]
     register = 4
     slave_id = 0x00
-    address = 0x00
-    values = context[slave_id].getValues(register, address, count=5)
+    address = 0x01
+
+    ## read some values
+    read_values = context[slave_id].getValues(3, 0, count=2)
+    log.debug(f"{read_values}")
+
+    # Update the values some way or another, for example from another server
+   
+    # find out how to put this into another file
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("127.0.0.1", 9977))
+
+    payload = {
+        "x": read_values[0], 
+        "y": read_values[1],  
+    }
+    payload_encoded = json.dumps(payload, separators=(',', ':'))    
+    header = {
+        "len": len(payload_encoded),
+        "msg_type": "get_info",
+    }
+    header_encoded = json.dumps(header, separators=(',', ':'))
+    header_len = len(header_encoded)
+
+    sock.send(bytes([header_len]))
+    sock.send(bytes(header_encoded, 'utf-8'))
+    sock.send(bytes(payload_encoded, 'utf-8'))
+
+    response_data = sock.recv(1024)
+
+    response_data = json.loads(response_data.decode('utf-8').strip())
+
+    for key in response_data:
+        log.debug(f"{key}: {response_data[key]}")
+
+    sock.close()
+    values = [1,2,3,4,5]
     #log.debug(values)
-    values = [v + 1 for v in values]
+    values = [random.randint(1, 5) for v in values]
+    values = [response_data["value"]]
     log.debug("new values: " + str(values))
     context[slave_id].setValues(register, address, values)
 
@@ -85,7 +129,7 @@ def run_updating_server():
     # ----------------------------------------------------------------------- # 
     # run the server you want
     # ----------------------------------------------------------------------- # 
-    time = 5  # 5 seconds delay
+    time = 1  # 1 seconds delay
     loop = LoopingCall(f=updating_writer, a=(context,))
     loop.start(time, now=False) # initially delay by time
     StartTcpServer(context, identity=identity, address=("localhost", 5020))

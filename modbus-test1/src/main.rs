@@ -1,7 +1,10 @@
 use tokio::net::{TcpListener};
-// use tokio::io::copy;
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde::{Serialize, Deserialize};
+
+use rand::prelude::*;
+use rand::rngs::StdRng;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Point {
@@ -19,7 +22,7 @@ struct Header {
 struct Message {
     msg_type: String, 
     address: i32,
-    value: i32,
+    value: u16,
 }
 
 
@@ -27,7 +30,7 @@ struct Message {
 async fn main() {
     let tcplistener = TcpListener::bind("127.0.0.1:9977").await.unwrap();
     println!("Listen on port: 9977");
-
+    
     let t = tokio::spawn(async move {
         listen_tcp(tcplistener).await;
     });
@@ -36,10 +39,12 @@ async fn main() {
 }
 
 async fn listen_tcp(listener: TcpListener) {
+    let mut r = StdRng::seed_from_u64(32);
     loop {
         match listener.accept().await {
             Ok((mut stream, _addr)) => {
                 println!("new TCP client! {:?}", _addr);
+                let value: u16 = r.gen();
                 tokio::spawn(async move {
                     let (mut reader, mut writer) = stream.split();
                     // read header length
@@ -63,11 +68,12 @@ async fn listen_tcp(listener: TcpListener) {
                     let payload: Point = serde_json::from_str(payload_string).unwrap();
                     println!("Payload {:?}", payload);
 
-                    // write something
+                    // write something random
+
                     let hardcoded = Message {
                         msg_type: String::from("input-register"),
                         address: 0,
-                        value: 55443,
+                        value,
                     };
                     let mut hardcoded = serde_json::to_string(&hardcoded).unwrap();
                     hardcoded.push('\n');
