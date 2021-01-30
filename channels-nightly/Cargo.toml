@@ -1,5 +1,5 @@
 [package]
-name = "channels"
+name = "channels-nightly"
 version = "0.1.0"
 authors = ["Jon-Martin Storm <jonmartin.storm@gmail.com>"]
 edition = "2018"
