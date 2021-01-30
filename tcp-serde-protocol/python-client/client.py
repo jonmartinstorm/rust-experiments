@@ -8,7 +8,7 @@ if len(sys.argv) < 4:
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-sock.connect(("127.0.0.1", 9977))
+sock.connect(("192.168.1.213", 9977))
 
 payload = {
     "x": int(sys.argv[2]), 
