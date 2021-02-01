@@ -1,5 +1,6 @@
 use std::time::{SystemTime};
 use tokio::sync::mpsc;
+use tokio::sync::watch;
 
 #[tokio::main]
 async fn main() {
@@ -7,10 +8,11 @@ async fn main() {
     let now: SystemTime = SystemTime::now();
     let mut counter: u64 = 1;
     let (tx, mut rx) = mpsc::channel(32);
+    let (txw, mut rxw) = watch::channel(32);
 
     while now.elapsed().unwrap().as_secs_f32() < 2.5 {
         let mut time = now.elapsed().unwrap().as_secs_f32();
-        listen_unix(time, counter, tx.clone()).await;
+        listen_unix(time, counter, tx.clone(), rxw).await;
 
         listen_tcp(time, counter, tx.clone()).await;
 
@@ -35,7 +37,7 @@ async fn main() {
 }
 
 
-async fn listen_unix(time: f32, counter: u64, tx: mpsc::Sender<String>) {
+async fn listen_unix(time: f32, counter: u64, tx: mpsc::Sender<String>, rx: watch::Receiver<u16>) {
     tokio::spawn(async move {
         let id = std::thread::current().id();
         let t1: SystemTime = SystemTime::now();

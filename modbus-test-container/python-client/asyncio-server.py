@@ -21,10 +21,10 @@ import random
 import socket
 import json
 
-def talk_to_simulation(read_values, sock):
+def talk_to_simulation(read_values):
     # find out how to put this into another file
-    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #sock.connect(("127.0.0.1", 9977))
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("127.0.0.1", 9977))
 
     payload = {
         "x": read_values[0], 
@@ -49,11 +49,11 @@ def talk_to_simulation(read_values, sock):
     for key in response_data:
         log.debug(f"{key}: {response_data[key]}")
 
-    #sock.close()
+    sock.close()
     return response_data
 
 # a worker for talking to the simulation
-async def updating_writer(a, time, sock):
+async def updating_writer(a, time):
     while True:
         await asyncio.sleep(time)
 
@@ -72,7 +72,7 @@ async def updating_writer(a, time, sock):
         log.debug(f"{read_values}")
 
         # Update the values some way or another, for example from another server
-        response_data = talk_to_simulation(read_values, sock)
+        response_data = talk_to_simulation(read_values)
 
         # Write the values back.
         values = [response_data["value"]]
@@ -101,14 +101,14 @@ def run_server():
 
     # run the server you want after creating tasks
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("127.0.0.1", 9977))
+    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #sock.connect(("127.0.0.1", 9977))
 
     loop = asyncio.get_event_loop()
     loop.create_task(start_servers(context, identity, loop))
-    loop.create_task(updating_writer(context, 1, sock))
+    loop.create_task(updating_writer(context, 1))
     loop.run_forever()
-    sock.close()
+    #sock.close()
     
 async def start_servers(context, identity, loop):
         server = await StartTcpServer(context, identity=identity, address=("0.0.0.0", 5020),
