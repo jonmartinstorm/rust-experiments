@@ -1,20 +1,34 @@
-# first stage
-FROM python:3.8 AS builder
+# Stage 1 - Install build dependencies
+FROM python:3.7-alpine AS builder
+
+WORKDIR /app
+
+ARG BUILD_DEPS="build-base gcc libffi-dev openssl-dev"
+
+RUN apk add --no-cache ${BUILD_DEPS} \
+ && python -m venv .venv \
+ && .venv/bin/pip install --no-cache-dir -U pip setuptools
+
 COPY requirements.txt .
 
-# install dependencies to the local user directory (eg. /root/.local)
-RUN pip install --user -r requirements.txt
+RUN .venv/bin/pip install --no-cache-dir -r requirements.txt \
+ && find /app/.venv \
+        \( -type d -a -name test -o -name tests \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' \+
 
-# second unnamed stage
-FROM python:3.8-slim
-WORKDIR /code
+# Stage 2 - Copy only necessary files to the runner stage
+FROM python:3.7-alpine
 
-# copy only the dependencies installation from the 1st stage image
-COPY --from=builder /root/.local/bin /root/.local
-COPY ./src .
+WORKDIR /app
 
-# update PATH environment variable
-ENV PATH=/root/.local:$PATH
+ARG RUNTIME_DEPS="libcrypto1.1 libssl1.1"
+RUN apk add --no-cache ${RUNTIME_DEPS}
 
-# command to run on container start
-CMD [ "python", "./asyncio-server.py" ] 
+COPY --from=builder /app /app
+COPY my_project my_project
+COPY main.py .
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["python", "main.py"]
