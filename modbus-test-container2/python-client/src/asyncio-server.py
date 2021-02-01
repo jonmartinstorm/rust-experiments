@@ -102,7 +102,7 @@ def run_server():
     # run the server you want after creating tasks
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("127.0.0.1", 9977))
+    sock.connect(("172.17.0.1", 9977))
 
     loop = asyncio.get_event_loop()
     loop.create_task(start_servers(context, identity, loop))
