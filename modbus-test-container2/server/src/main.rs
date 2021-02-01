@@ -12,6 +12,7 @@ use serde::{Serialize, Deserialize};
 
 use rand::prelude::*;
 use rand::rngs::StdRng;
+use rand_distr::{Normal, Distribution};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Point {
@@ -55,10 +56,13 @@ async fn main() {
 }
 
 async fn write_something(txb: watch::Sender<u16>) {
-    let mut r = StdRng::seed_from_u64(32);
+    //let mut r = StdRng::seed_from_u64(32);
+    let normal = Normal::new(2.0, 3.0).unwrap();
+    let v = normal.sample(&mut rand::thread_rng());
     tokio::spawn(async move {
         loop {
-            let value: u16 = r.gen();
+            //let value: u16 = r.gen();
+            let value = (normal.sample(&mut rand::thread_rng()) * 100.0) as u16;
             sleep(Duration::from_millis(1000)).await;
             //println!("Sending {}", value);
             txb.send(value).unwrap();

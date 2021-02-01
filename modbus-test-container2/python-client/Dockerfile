@@ -1,5 +1,5 @@
 # Stage 1 - Install build dependencies
-FROM python:3.7-alpine AS builder
+FROM python:3.8-alpine AS builder
 
 WORKDIR /app
 
@@ -18,17 +18,17 @@ RUN .venv/bin/pip install --no-cache-dir -r requirements.txt \
         -exec rm -rf '{}' \+
 
 # Stage 2 - Copy only necessary files to the runner stage
-FROM python:3.7-alpine
+FROM python:3.8-alpine
 
 WORKDIR /app
 
-ARG RUNTIME_DEPS="libcrypto1.1 libssl1.1"
+ARG RUNTIME_DEPS="libssl1.1"
 RUN apk add --no-cache ${RUNTIME_DEPS}
 
 COPY --from=builder /app /app
-COPY my_project my_project
-COPY main.py .
+#COPY my_project my_project
+COPY src/asyncio-server.py .
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "main.py"]
+CMD ["python", "asyncio-server.py"]
