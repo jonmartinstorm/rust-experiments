@@ -6,6 +6,7 @@ use tokio::net::TcpStream;
 use std::env;
 use tokio::time::{sleep, Duration};
 use tokio::sync::broadcast;
+use tokio::sync::watch;
 use std::str;
 
 use rand::prelude::*;
@@ -25,48 +26,46 @@ async fn main() {
     let hei = String::from("hei");
 
     //let (tx, mut rx) = mpsc::channel(100);
-    let (txb, rxb) = broadcast::channel(100);
+    let (txb, rxb) = watch::channel(100);
 
-    let t = listen_tcp(listener, hei, txb.clone());
-    let r = write_something(txb.clone());
+    let t = listen_tcp(listener, hei, rxb.clone());
+    let r = write_something(txb);
 
     r.await;
     t.await;
 }
 
-async fn write_something(txb: broadcast::Sender<u16>) {
+async fn write_something(txb: watch::Sender<u16>) {
     let mut r = StdRng::seed_from_u64(32);
     tokio::spawn(async move {
         loop {
             let value: u16 = r.gen();
             sleep(Duration::from_millis(1000)).await;
-            println!("Number of recievers to send to: {}", txb.receiver_count());
+            println!("Sending {}", value);
             txb.send(value).unwrap();
         }
     });
 }
 
-async fn listen_tcp(listener: TcpListener, hei: String, txb: broadcast::Sender<u16>) {
+async fn listen_tcp(listener: TcpListener, hei: String, rxb: watch::Receiver<u16>) {
     loop {
         let (mut socket, _) = listener.accept().await.unwrap();
         println!("{}", "New connection!");
-        let txb = txb.clone();
         let hei = hei.clone();
-        handle(socket, hei, txb).await;
+        handle(socket, hei, rxb.clone()).await;
     }
 }
 
-async fn handle(mut socket: TcpStream, hei: String, txb: broadcast::Sender<u16>) {
+async fn handle(mut socket: TcpStream, hei: String, rxb: watch::Receiver<u16>) {
     
     tokio::spawn(async move {
         println!("Handle new connection");
-        let mut rx = txb.subscribe();
 
         let mut buf:Vec<u8> = vec![0; 1024];
 
         // In a loop, read data from the socket and write the data back.
         loop {
-            let v = rx.recv().await.unwrap();
+            let v = *rxb.borrow();
             println!("{}", hei);
 
             let mut n = socket
