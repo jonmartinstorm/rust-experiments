@@ -1,0 +1,16 @@
+[package]
+name = "simulation_server-v3"
+version = "0.1.1"
+authors = ["Jon-Martin Storm <jonmartin.storm@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "*"
+rand_distr = "0.4"
+env_logger = "0.8"
+log = "0.4"
