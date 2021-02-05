@@ -7,36 +7,12 @@ use std::env;
 use tokio::time::{sleep, Duration};
 use tokio::sync::watch;
 use tokio::sync::broadcast;
-use std::str;
-
-use serde::{Serialize, Deserialize};
 
 use env_logger;
 use log::debug;
 
-use simulation_server_v3::watertank::WaterTank;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Point {
-    x: i32,
-    y: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Header {
-    len: i32,
-    msg_type: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Message {
-    msg_type: String, 
-    address: i32,
-    tank_level: u16,
-    tank_inflow: u16,
-}
-
-
+use simulation_server_v3::utils::watertank::WaterTank;
+use simulation_server_v3::utils::protocol::{Point, Message, Header};
 
 #[tokio::main]
 async fn main() {
