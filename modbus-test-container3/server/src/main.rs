@@ -16,12 +16,16 @@ use simulation_server_v3::utils::protocol::{Point, Message, Header};
 
 #[tokio::main]
 async fn main() {
+    // Setup logging
     env_logger::init();
     debug!("Log test.");
+
+    // get address as argument or set default
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| "0.0.0.0:9977".to_string());
 
+    // Create a tank
     let tank = WaterTank {
         level: 1000,
         areal: 1000000,
@@ -33,16 +37,17 @@ async fn main() {
         set_level: 1000,
     };
 
+    // Setup tcplistener to the gateway
     let listener = TcpListener::bind(&addr).await.unwrap();
     debug!("Listening on: {}", addr);
 
-    //let (tx, mut rx) = mpsc::channel(100);
+    // Create a few channels to talk across threads
     let (txout, rxout) = watch::channel((0, 0));
     let (txin, rxin) = broadcast::channel(2);
 
+    // Start and run the listener and simulation.
     let t = listen_tcp(listener, rxout.clone(), txin.clone());
     let r = run_simulation(txout, rxin, tank);
-
     r.await;
     t.await;
 }
