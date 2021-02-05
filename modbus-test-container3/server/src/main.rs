@@ -1,22 +1,18 @@
-
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
-use tokio::net::TcpStream;
-
 use std::env;
-use tokio::time::{sleep, Duration};
-use tokio::sync::watch;
-use tokio::sync::broadcast;
-
 use env_logger;
 use log::debug;
+
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::time::{sleep, Duration};
+use tokio::sync::{watch, broadcast};
 
 use simulation_server_v3::utils::watertank::WaterTank;
 use simulation_server_v3::utils::protocol::{Point, Message, Header};
 
 #[tokio::main]
 async fn main() {
-    // Setup logging
+    // Setup logging, run with RUST_LOG=debug to see log
     env_logger::init();
     debug!("Log test.");
 
@@ -42,7 +38,7 @@ async fn main() {
     debug!("Listening on: {}", addr);
 
     // Create a few channels to talk across threads
-    let (txout, rxout) = watch::channel((0, 0));
+    let (txout, rxout) = watch::channel(tank);
     let (txin, rxin) = broadcast::channel(2);
 
     // Start and run the listener and simulation.
@@ -52,47 +48,48 @@ async fn main() {
     t.await;
 }
 
-async fn run_simulation(txout: watch::Sender<(u16, u16)>, mut rxin: broadcast::Receiver<(u16, u16)>, mut tank: WaterTank) {
+async fn run_simulation(txout: watch::Sender<WaterTank>, mut rxin: broadcast::Receiver<(u16, u16)>, mut tank: WaterTank) {
     tokio::spawn(async move {
         loop {
+            // Wait so we dont run too fast
             sleep(Duration::from_millis(300)).await;
+
+            // Get and update outflow control setpoint
             let (outflow, _r) = rxin.recv().await.unwrap();
             tank.outflow = (outflow as f32 / 65535.0) as f64 * 40.0;
+
+
             tank.update_inflow();
             tank.update_level(0.3);
             
-            // 0 - 65536
-            let max = 65535 as f32 / tank.height as f32;
-            let tank_level = (tank.level as f32 * max) as u16;
-            
-            let max = 65535 as f32 / 40 as f32;
-            let tank_inflow = (tank.inflow as f32 * max) as u16;
-
-            let value = (tank_level, tank_inflow);
-            
-            txout.send(value).unwrap();
+            txout.send(tank).unwrap();
             debug!("Tank: {:?}", tank);
         }
     });
 }
 
-async fn listen_tcp(listener: TcpListener, rxb: watch::Receiver<(u16, u16)>, txin: broadcast::Sender<(u16, u16)>) {
+async fn listen_tcp(listener: TcpListener, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
     
     loop {
         let (stream, addr) = listener.accept().await.unwrap();
         debug!("New connection from {:?}", addr);
-        handle(stream, rxb.clone(), txin.clone()).await;
+        handle(stream, rxout.clone(), txin.clone()).await;
     }
 }
 
-async fn handle(mut stream: TcpStream, rxb: watch::Receiver<(u16, u16)>, txin: broadcast::Sender<(u16, u16)>) {
+async fn handle(mut stream: TcpStream, rxout: watch::Receiver<WaterTank>, txin: broadcast::Sender<(u16, u16)>) {
     
     tokio::spawn(async move {
         debug!("Handle new connection");
 
         // In a loop, read data from the socket and write the data back.
         loop {
-            let (level, inflow) = *rxb.borrow();
+            let tank = *rxout.borrow();
+            let max = 65535 as f32 / tank.height as f32;
+            let tank_level = (tank.level as f32 * max) as u16;
+            
+            let max = 65535 as f32 / 40 as f32;
+            let tank_inflow = (tank.inflow as f32 * max) as u16;
 
             let (mut reader, mut writer) = stream.split();
 
@@ -123,8 +120,8 @@ async fn handle(mut stream: TcpStream, rxb: watch::Receiver<(u16, u16)>, txin: b
             let hardcoded = Message {
                 msg_type: String::from("input-register"),
                 address: 0,
-                tank_level: level,
-                tank_inflow: inflow,
+                tank_level: tank_level,
+                tank_inflow: tank_inflow,
             };
             let mut hardcoded = serde_json::to_string(&hardcoded).unwrap();
             debug!("Sending {}", hardcoded);
