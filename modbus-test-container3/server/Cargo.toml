@@ -1,5 +1,5 @@
 [package]
-name = "simulation_server-v3"
+name = "simulation_server_v3"
 version = "0.1.1"
 authors = ["Jon-Martin Storm <jonmartin.storm@gmail.com>"]
 edition = "2018"
