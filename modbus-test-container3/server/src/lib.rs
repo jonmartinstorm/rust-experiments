@@ -12,7 +12,7 @@ pub mod utils {
         /// There is an areal of the water tank, it is a box watertank with a hight
         /// There is also a valve out of the water tank that controls the outflow
         /// 
-        #[derive(Serialize, Deserialize, Debug)]
+        #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
         pub struct WaterTank {
             pub level: i64,         // the water level of the tank mm. 
             pub inflow_mean: f32,   // the mean inflow if the tank l/s
